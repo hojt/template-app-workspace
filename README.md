@@ -1,7 +1,8 @@
 # template-app-workspace
 
-Starter workspace for a self-contained Quarkus and React application on the
-platform. Copy it into a new Git repository, then follow
+Starter workspace for a self-contained application on the platform. It includes
+a Quarkus/Java/Maven backend and a Vite/React/TypeScript frontend as working
+examples. Copy it into a new Git repository, then follow
 [`docs/create-application.md`](docs/create-application.md) to give that
 application its own identity. The checked-in `example-*` components are working
 starting points, not a deployed application.
@@ -10,14 +11,19 @@ starting points, not a deployed application.
 
 ```text
 components/
-  example-backend/   # Quarkus service
-  example-frontend/ # Vite, React, and TypeScript browser application
+  example-backend/   # Quarkus, Java, and Maven reference backend
+  example-frontend/ # Vite, React, and TypeScript reference frontend
 docs/                # template and application documentation
 ```
 
 Components are ordinary directories versioned with the workspace. They are
 independently buildable and deployable, while the workspace supplies common
-tasks and a shared application version.
+tasks and a shared application version. The pattern is not tied to the example
+frameworks: a frontend based on another Node.js/npm stack can replace
+`example-frontend` while retaining this component structure. The backend example
+uses Java and Maven; another Java/Maven backend can likewise replace Quarkus.
+Any replacement backend must provide equivalent build, verification, image, and
+version integration.
 
 ## New Checkout Or File Copy
 
@@ -42,8 +48,8 @@ container from the workspace root:
 ./dev.sh
 ```
 
-Inside that container, install the frontend's locked dependencies before using
-frontend tasks:
+Inside that container, install the checked-in frontend example's locked npm
+dependencies before using its frontend tasks:
 
 ```bash
 cd components/example-frontend
@@ -71,21 +77,22 @@ task backend:verify
 task frontend:verify
 ```
 
-The backend's `http://localhost:8080` addresses apply inside the developer
-container. The browser uses the Vite frontend published from the developer
-container only on host loopback. Vite remains on container port 5173; by default
-the browser URL is `http://127.0.0.1:5173`. Select another host port at
-container creation time, for example:
+The checked-in backend example's `http://localhost:8080` addresses apply inside
+the developer container. The browser uses the checked-in Vite frontend example,
+published from the developer container only on host loopback. Vite remains on
+container port 5173; by default the browser URL is `http://127.0.0.1:5173`.
+Select another host port at container creation time, for example:
 
 ```bash
 FRONTEND_HOST_PORT=5174 ./dev.sh rebuild
 ```
 
-`FRONTEND_HOST_PORT` changes only the published host port; Vite still listens on
-5173 in the container. A changed value requires recreating the developer
-container from the host, so use `./dev.sh rebuild`. A normal `./dev.sh` start
-reconnects to the existing tmux session and keeps its port choice. The agent
-container publishes no ports.
+`FRONTEND_HOST_PORT` changes only the published host port; the checked-in Vite
+example still listens on 5173 in the container. A replacement frontend must
+update this publication and its development-server port as needed. A changed
+value requires recreating the developer container from the host, so use
+`./dev.sh rebuild`. A normal `./dev.sh` start reconnects to the existing tmux
+session and keeps its port choice. The agent container publishes no ports.
 
 `./agent.sh` starts the separate, access-restricted coding-agent environment.
 Its restrictions are intentional and are not a substitute for the developer
@@ -115,11 +122,12 @@ as production registry configuration.
 
 ## Platform Integration
 
-Development runs Vite and Quarkus directly in the developer container. Platform
-execution instead runs the built images and is configured by platform and
-environment repositories; this workspace does not own deployment manifests.
+Development runs the checked-in Vite and Quarkus examples directly in the
+developer container. Platform execution instead runs the built images and is
+configured by platform and environment repositories; this workspace does not
+own deployment manifests.
 
-The current component contract is:
+The current example component contract is:
 
 - The frontend image serves HTTP on port 8080 and the backend serves HTTP on port 8080.
 - Route `/api` to the backend, including `/api/greeting`.
