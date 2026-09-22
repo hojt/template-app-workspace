@@ -1,0 +1,117 @@
+version: '3'
+
+tasks:
+  default:
+    cmds:
+      - task --list
+
+  status:
+    desc: Show application workspace status
+    cmds:
+      - git status --short
+
+  version:check:
+    desc: Verify that component version declarations match
+    cmds:
+      - ./scripts/version-check.sh
+
+  version:set:
+    desc: Set the shared application version (VERSION=MAJOR.MINOR.PATCH)
+    cmds:
+      - ./scripts/version-set.sh '{{.VERSION | default ""}}'
+
+  backend:dev:
+    desc: Start the backend in development mode
+    dir: components/example-backend
+    cmds:
+      - task dev
+
+  backend:test:
+    desc: Run backend tests
+    dir: components/example-backend
+    cmds:
+      - task test
+
+  backend:verify:
+    desc: Run the backend verification pipeline
+    dir: components/example-backend
+    cmds:
+      - task verify
+
+  backend:image:
+    desc: Build and push the backend container image
+    dir: components/example-backend
+    cmds:
+      - task image
+
+  backend:image:build:
+    desc: Build the backend container image
+    dir: components/example-backend
+    cmds:
+      - task image:build
+
+  backend:image:push:
+    desc: Push the backend container image
+    dir: components/example-backend
+    cmds:
+      - task image:push
+
+  backend:image:release:
+    desc: Release the backend container image
+    dir: components/example-backend
+    cmds:
+      - task image:release
+
+  frontend:dev:
+    desc: Start the frontend in development mode
+    dir: components/example-frontend
+    cmds:
+      - task dev
+
+  frontend:build:
+    desc: Build the frontend
+    dir: components/example-frontend
+    cmds:
+      - task build
+
+  frontend:test:
+    desc: Run frontend tests
+    dir: components/example-frontend
+    cmds:
+      - task test
+
+  frontend:check:
+    desc: Run frontend type checks
+    dir: components/example-frontend
+    cmds:
+      - task check
+
+  frontend:verify:
+    desc: Run the frontend verification pipeline
+    dir: components/example-frontend
+    cmds:
+      - task verify
+
+  frontend:image:
+    desc: Build and push the frontend container image
+    dir: components/example-frontend
+    cmds:
+      - task image
+
+  frontend:image:build:
+    desc: Build the frontend container image
+    dir: components/example-frontend
+    cmds:
+      - task image:build
+
+  frontend:image:push:
+    desc: Push the frontend container image
+    dir: components/example-frontend
+    cmds:
+      - task image:push
+
+  frontend:image:release:
+    desc: Release the frontend container image
+    dir: components/example-frontend
+    cmds:
+      - task image:release

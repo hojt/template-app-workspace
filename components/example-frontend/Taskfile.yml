@@ -1,0 +1,48 @@
+version: '3'
+
+tasks:
+  dev:
+    desc: Start the frontend development server
+    cmds:
+      - npm run dev
+
+  build:
+    desc: Build the frontend
+    cmds:
+      - npm run build
+
+  test:
+    desc: Run frontend tests
+    cmds:
+      - npm run test
+
+  check:
+    desc: Run frontend type checks
+    cmds:
+      - npm run check
+
+  verify:
+    desc: Run the frontend verification pipeline
+    cmds:
+      - npm run verify
+
+  image:build:
+    desc: Build the frontend container image
+    cmds:
+      - ./scripts/image-build.sh
+
+  image:push:
+    desc: Push the frontend container image
+    cmds:
+      - ./scripts/image-push.sh
+
+  image:release:
+    desc: Publish the frontend as the current release version
+    cmds:
+      - ./scripts/image-release.sh
+
+  image:
+    desc: Build and push the frontend container image
+    cmds:
+      - task: image:build
+      - task: image:push

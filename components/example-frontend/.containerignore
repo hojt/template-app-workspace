@@ -1,0 +1,13 @@
+.git
+.devcontainer
+node_modules
+src
+scripts
+README.md
+Taskfile.yml
+package.json
+package-lock.json
+tsconfig.json
+tsconfig.app.json
+tsconfig.node.json
+vite.config.ts

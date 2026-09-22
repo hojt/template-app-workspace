@@ -1,0 +1,24 @@
+{
+  "name": "template-app-workspace-agent",
+  "build": {
+    "dockerfile": "../Containerfile",
+    "context": "../..",
+    "target": "agent"
+  },
+  "workspaceFolder": "/workspace",
+  "containerEnv": {
+    "OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER": "1"
+  },
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspace,type=bind",
+    "source=template-app-workspace-maven-cache,target=/home/developer/.m2,type=volume",
+    "source=template-app-workspace-npm-cache,target=/home/developer/.npm,type=volume",
+    "source=${localEnv:HOME}/.local/share/opencode/auth.json,target=/home/developer/.local/share/opencode/auth.json,type=bind"
+  ],
+  "runArgs": [
+    "--security-opt=label=disable"
+  ],
+  "remoteUser": "developer",
+  "containerUser": "developer",
+  "updateRemoteUserUID": true
+}

@@ -1,0 +1,53 @@
+version: '3'
+
+tasks:
+  dev:
+    desc: Start Quarkus in development mode
+    cmds:
+      - ./scripts/dev.sh
+
+  test:
+    desc: Run the automated tests
+    cmds:
+      - ./scripts/test.sh
+
+  package:
+    desc: Build the application package
+    cmds:
+      - ./scripts/package.sh
+
+  check:
+    desc: Run project quality checks
+    cmds:
+      - ./scripts/check.sh
+
+  verify:
+    desc: Run the full verification pipeline
+    cmds:
+      - ./scripts/verify.sh
+
+  otel:dev:
+    desc: Run a local OpenTelemetry Collector for development
+    cmds:
+      - ./scripts/otel-dev.sh
+
+  image:build:
+    desc: Build the backend container image
+    cmds:
+      - ./scripts/image-build.sh
+
+  image:push:
+    desc: Push the application image to the local registry
+    cmds:
+      - ./scripts/image-push.sh
+
+  image:release:
+    desc: Publish the application as the current release version
+    cmds:
+      - ./scripts/image-release.sh
+
+  image:
+    desc: Build and push the application image
+    cmds:
+      - task: image:build
+      - task: image:push

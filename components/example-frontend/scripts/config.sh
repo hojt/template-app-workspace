@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+IMAGE_NAME="${IMAGE_NAME:-example-frontend}"
+
+REGISTRY_HOST="${REGISTRY_HOST:-localhost}"
+REGISTRY_PORT="${REGISTRY_PORT:-5001}"
+REGISTRY_ADDRESS="${REGISTRY_HOST}:${REGISTRY_PORT}"
