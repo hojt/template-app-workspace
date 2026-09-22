@@ -104,7 +104,7 @@ All components share one declared version. Set and check it from the workspace
 root:
 
 ```bash
-task version:set VERSION=0.8.0
+task version:set VERSION=0.0.1
 task version:check
 ```
 

@@ -35,7 +35,7 @@ version integration.
 - The supplied frontend can be replaced by another Node.js/npm stack. Update its package name, display text, telemetry service name, tests, component tasks, Containerfile, and development-server configuration for that stack.
 - For an npm frontend, run `npm install --package-lock-only` or `npm version --no-git-tag-version` as appropriate so `package-lock.json` has the same package name and version as `package.json`; use `npm ci` to install the lockfile afterwards.
 - Change `IMAGE_NAME` defaults and any Containerfile labels or image references for both components.
-- Set the initial common release version with `task version:set VERSION=0.1.0`, then run `task version:check`.
+- Set the initial common release version with `task version:set VERSION=0.0.1`, then run `task version:check`.
 
 ## Platform Contract
 
