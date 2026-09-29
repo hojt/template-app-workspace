@@ -11,8 +11,8 @@
   },
   "mounts": [
     "source=${localWorkspaceFolder},target=/workspace,type=bind",
-    "source=template-app-workspace-maven-cache,target=/home/developer/.m2,type=volume",
-    "source=template-app-workspace-npm-cache,target=/home/developer/.npm,type=volume",
+    "source=example-app-agent-maven-cache,target=/home/developer/.m2,type=volume",
+    "source=example-app-agent-npm-cache,target=/home/developer/.npm,type=volume",
     "source=${localEnv:HOME}/.local/share/opencode/auth.json,target=/home/developer/.local/share/opencode/auth.json,type=bind"
   ],
   "runArgs": [
