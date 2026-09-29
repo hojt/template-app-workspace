@@ -1,8 +1,12 @@
+ARG USERNAME=developer
+
+
+
 FROM registry.fedoraproject.org/fedora:43 AS base
 
 ARG TASK_VERSION=3.45.4
 
-ARG USERNAME=developer
+ARG USERNAME
 ARG USER_UID=1000
 ARG USER_GID=${USER_UID}
 
@@ -41,7 +45,6 @@ RUN dnf install -y \
         neovim \
         nodejs24 \
         nodejs24-npm \
-        podman \
         procps-ng \
         ripgrep \
         shellcheck \
@@ -76,12 +79,14 @@ USER ${USERNAME}
 
 FROM base AS agent
 
+ARG USERNAME
+
 USER root
 
 ARG OPENCODE_VERSION=1.18.23
 
-RUN mkdir -p /home/developer/.local/share/opencode \
-    && chown -R developer:developer /home/developer/.local/share/opencode
+RUN mkdir -p /home/${USERNAME}/.local/share/opencode \
+    && chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}/.local/share/opencode
 
 RUN curl --fail --location --silent --show-error \
     "https://github.com/anomalyco/opencode/releases/download/v${OPENCODE_VERSION}/opencode-linux-x64.tar.gz" \
@@ -94,8 +99,18 @@ RUN curl --fail --location --silent --show-error \
     && rm /tmp/opencode.tar.gz /tmp/opencode \
     && opencode --version
 
-USER developer
+USER ${USERNAME}
 
 
 
 FROM base AS development
+
+ARG USERNAME
+
+USER root
+
+RUN dnf install -y \
+        podman \
+    && dnf clean all
+
+USER ${USERNAME}
