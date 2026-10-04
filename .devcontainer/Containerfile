@@ -1,10 +1,11 @@
 ARG USERNAME=developer
+ARG BASE_IMAGE=registry.fedoraproject.org/fedora:43@sha256:c5e15bd1e07c25904d0c5b9865fb7ee4589f8ca234e635742b0c1195838f4bfd
 
+FROM ${BASE_IMAGE} AS base
 
-
-FROM registry.fedoraproject.org/fedora:43 AS base
-
-ARG TASK_VERSION=3.45.4
+ARG TASK_VERSION=3.54.0
+# Update together with TASK_VERSION (from task_checksums.txt in the release)
+ARG TASK_SHA256=680859dbb4d881a9c72d4d9a8f510825450849af8567deacd7302c01124416fb
 
 ARG USERNAME
 ARG USER_UID=1000
@@ -63,6 +64,7 @@ RUN ln --symbolic /usr/bin/node-24 /usr/local/bin/node \
 RUN curl --fail --location --silent --show-error \
         "https://github.com/go-task/task/releases/download/v${TASK_VERSION}/task_linux_amd64.tar.gz" \
         --output /tmp/task.tar.gz \
+    && echo "${TASK_SHA256}  /tmp/task.tar.gz" | sha256sum --check --strict \
     && tar --extract \
         --gzip \
         --file /tmp/task.tar.gz \
@@ -83,7 +85,9 @@ ARG USERNAME
 
 USER root
 
-ARG OPENCODE_VERSION=1.18.23
+ARG OPENCODE_VERSION=1.18.34
+# Update together with OPENCODE_VERSION
+ARG OPENCODE_SHA256=0f22479647226d1d2dd99595d20082ee7bda3870b62dc6a90b41efc1a71d7e9a
 
 RUN mkdir -p /home/${USERNAME}/.local/share/opencode \
     && chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}/.local/share/opencode
@@ -91,6 +95,7 @@ RUN mkdir -p /home/${USERNAME}/.local/share/opencode \
 RUN curl --fail --location --silent --show-error \
     "https://github.com/anomalyco/opencode/releases/download/v${OPENCODE_VERSION}/opencode-linux-x64.tar.gz" \
     --output /tmp/opencode.tar.gz \
+    && echo "${OPENCODE_SHA256}  /tmp/opencode.tar.gz" | sha256sum --check --strict \
     && tar --extract \
         --gzip \
         --file /tmp/opencode.tar.gz \
