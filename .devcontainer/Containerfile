@@ -71,7 +71,7 @@ RUN curl --fail --location --silent --show-error \
     && rm /tmp/task.tar.gz \
     && task --version
 
-WORKDIR /workspace
+WORKDIR /workspaces
 
 USER ${USERNAME}
 
