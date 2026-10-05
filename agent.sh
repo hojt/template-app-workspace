@@ -170,6 +170,17 @@ check_agent_path_readonly() {
   fi
 }
 
+check_agent_path_writable() {
+  local path="$1"
+  local description="$2"
+
+  if agent_exec test -w "${path}"; then
+    check_passed "${description}"
+  else
+    check_failed "${description}"
+  fi
+}
+
 check_agent_mountpoint() {
   local path="$1"
   local description="$2"
@@ -289,6 +300,7 @@ verify_agent_environment() {
 
   local protected_path
   for protected_path in \
+    . \
     .devcontainer \
     .git \
     AGENTS.md \
@@ -300,6 +312,16 @@ verify_agent_environment() {
     check_agent_path_readonly \
       "${agent_workspace}/${protected_path}" \
       "${protected_path} is read-only" ||
+      status=1
+  done
+
+  local writable_path
+  for writable_path in \
+    components \
+    docs; do
+    check_agent_path_writable \
+      "${agent_workspace}/${writable_path}" \
+      "${writable_path} is writable" ||
       status=1
   done
 
