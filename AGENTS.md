@@ -59,6 +59,9 @@ Workspace-level development plumbing, including the devcontainer configuration,
 may be changed when required to make a component usable from the developer
 environment. Keep such changes minimal and specific to demonstrated needs.
 
+Dependencies are not shared with the developer environment. Run `npm install`
+in a frontend component before building or testing it.
+
 ### Agent containment
 
 The devcontainer configuration is intentionally designed to contain the coding agent and limit its blast radius.
