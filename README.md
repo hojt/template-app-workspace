@@ -138,7 +138,7 @@ The current example component contract is:
 Start the optional local collector from the developer container with:
 
 ```bash
-cd /workspace/components/example-backend
+cd components/example-backend
 task otel:dev
 ```
 
