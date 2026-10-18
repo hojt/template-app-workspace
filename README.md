@@ -94,9 +94,46 @@ value requires recreating the developer container from the host, so use
 `./dev.sh rebuild`. A normal `./dev.sh` start reconnects to the existing tmux
 session and keeps its port choice. The agent container publishes no ports.
 
-`./agent.sh` starts the separate, access-restricted coding-agent environment.
-Its restrictions are intentional and are not a substitute for the developer
-environment or host browser testing.
+## Coding-Agent Environment
+
+`./agent.sh` starts OpenCode, the default agent tool, in a separate,
+access-restricted coding-agent environment. Start Claude Code instead
+with:
+
+```bash
+./agent.sh claude
+```
+
+Its restrictions are intentional and are not a substitute for the
+developer environment or host browser testing.
+
+Each workspace keeps its own agent state, so a new application needs its
+own OpenCode login. Log in once from an agent shell:
+
+```bash
+./agent.sh shell
+opencode auth login
+```
+
+Claude Code uses a token shared by all workspaces, created once with
+`claude setup-token` and stored on the host in
+`~/.config/claude-agent/oauth-token`.
+
+The agent can read the whole workspace but only write to the paths
+listed in `.devcontainer/agent/sandbox.conf`, and its network access
+goes through an egress proxy. Show which hosts it has reached or been
+refused with:
+
+```bash
+./agent.sh proxy-log
+```
+
+When renaming or adding components, update `sandbox.conf` and the
+matching mounts in `.devcontainer/agent/devcontainer.json`. `agent.sh`
+refuses to start if they do not match.
+
+See the *Agent containment* section in `AGENTS.md` and ADR-0010 in
+`hojt/homelab` for details.
 
 ## Versions And Images
 

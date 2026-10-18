@@ -16,20 +16,21 @@ version integration.
 
 - A Git checkout keeps its existing `.git` directory. A file copy must not copy the template's `.git`, `node_modules`, or build results.
 - For a file copy, run `git init` from the new repository root before running `./agent.sh`.
+- Each workspace keeps its own agent state. Before the first agent session, log in to OpenCode from an agent shell: `./agent.sh shell`, then `opencode auth login`. Claude Code reuses the shared token in `~/.config/claude-agent/oauth-token`.
 - Normal verification commands can run without commits. Review and stage the application, then make the first commit before image builds that require `HEAD`.
 - The user reviews, stages, and creates the first commit. The agent must not create it.
 
 ## Identity And Development Environment
 
 - Rename the workspace directory and Git repository to the application name.
-- Change the developer and agent devcontainer `name` values in `.devcontainer/devcontainer.json` and `.devcontainer/agent/devcontainer.json`.
-- Rename every workspace-specific development volume, including Maven, npm, and Neovim data volumes. Give any new database or service data volumes application-specific names too.
-- Update workspace-facing messages and documentation, including `agent.sh` containment verification.
+- Container, volume, network, and proxy names derive from the workspace directory name, so renaming the directory renames them. Give any new volume a name based on `${localWorkspaceFolderBasename}` in the same way.
+- Update workspace-facing messages and documentation. `agent.sh` is shared across workspaces and needs no changes; its workspace-specific layout lives in `.devcontainer/agent/sandbox.conf`.
 - Select a host frontend port with `FRONTEND_HOST_PORT=<port> ./dev.sh rebuild`. Keep Vite's internal port 5173 and its `0.0.0.0` binding. Keep the agent devcontainer free of published ports.
 
 ## Components And Metadata
 
 - Rename `components/example-backend` and `components/example-frontend` to the new component names.
+- Update the agent sandbox for the renamed components: the isolated build output paths in `.devcontainer/agent/sandbox.conf`, and the matching volume mounts in `.devcontainer/agent/devcontainer.json`. `agent.sh` refuses to start until they match.
 - Update root task directories and both version scripts to the renamed component paths. Preserve the existing task names unless a deliberate interface change is required.
 - For the supplied Java/Maven backend, change the Maven `groupId`, `artifactId`, Java package, resource paths, and affected backend tests. If replacing it, provide equivalent component tasks and version integration for the selected backend stack.
 - The supplied frontend can be replaced by another Node.js/npm stack. Update its package name, display text, telemetry service name, tests, component tasks, Containerfile, and development-server configuration for that stack.
@@ -44,7 +45,7 @@ version integration.
 - Keep the Quarkus example's liveness and readiness paths `/q/health/live` and `/q/health/ready`, or update platform probes and documentation together.
 - Define configuration property names and defaults in the backend, then configure environment-specific values externally. Do not put deployment manifests or environment values in this workspace.
 - Choose registry host and port through `REGISTRY_HOST` and `REGISTRY_PORT`. Current image scripts require a `host:port` address and push with TLS verification disabled; replace that behavior before using a registry that needs a different security model.
-- If using the local collector alongside another application, change its fixed collector name and published ports 4317/4318 first. Start it from the developer container with `cd /workspace/components/example-backend && task otel:dev`.
+- If using the local collector alongside another application, change its fixed collector name and published ports 4317/4318 first. Start it from the workspace root in the developer container with `cd components/example-backend && task otel:dev`.
 
 ## Before First Release
 
