@@ -8,12 +8,16 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind,readonly,relabel=shared",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "mounts": [
+    // Shared opencode login across workspaces
     "source=${localEnv:HOME}/.local/share/opencode/auth.json,target=/home/developer/.local/share/opencode/auth.json,type=bind,relabel=shared",
+    // Shared Claude Code login across workspaces
+    "source=${localEnv:HOME}/.local/share/claude-agent,target=/home/developer/.claude,type=bind,relabel=shared",
     // The workspace is read-only; explicitly state what is writable
     "source=${localWorkspaceFolder}/components,target=/workspaces/${localWorkspaceFolderBasename}/components,type=bind",
     "source=${localWorkspaceFolder}/docs,target=/workspaces/${localWorkspaceFolderBasename}/docs,type=bind",
     // Agent-only state
     "target=/workspaces/${localWorkspaceFolderBasename}/.opencode,type=tmpfs,notmpcopyup",
+    "target=/workspaces/${localWorkspaceFolderBasename}/.claude,type=tmpfs,notmpcopyup",
     "source=${localWorkspaceFolderBasename}-agent-maven-cache,target=/home/developer/.m2,type=volume",
     "source=${localWorkspaceFolderBasename}-agent-npm-cache,target=/home/developer/.npm,type=volume",
     "source=${localWorkspaceFolderBasename}-agent-frontend-node-modules,target=/workspaces/${localWorkspaceFolderBasename}/components/example-frontend/node_modules,type=volume",
@@ -40,7 +44,11 @@
     "no_proxy": "localhost,127.0.0.1",
     "NODE_USE_ENV_PROXY": "1",
     "AGENT_PROXY_HOST": "${localWorkspaceFolderBasename}-agent-proxy",
-    "MAVEN_ARGS": "--global-settings /workspaces/${localWorkspaceFolderBasename}/.devcontainer/agent/maven-settings.xml -Dmaven.clean.failOnError=false"
+    "MAVEN_ARGS": "--global-settings /workspaces/${localWorkspaceFolderBasename}/.devcontainer/agent/maven-settings.xml -Dmaven.clean.failOnError=false",
+    "CLAUDE_CONFIG_DIR": "/home/developer/.claude",
+    "DISABLE_AUTOUPDATER": "1",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "ENABLE_CLAUDEAI_MCP_SERVERS": "false"
   },
   "updateRemoteUserUID": true
 }

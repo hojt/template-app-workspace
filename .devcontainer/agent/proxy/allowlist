@@ -8,5 +8,10 @@ repo.maven.apache.org
 # Opencode model catalog
 models.opencode.ai
 
-# Model provider
+# Claude Code
+api.anthropic.com
+platform.claude.com
+claude.ai
+
+# ChatGPT
 chatgpt.com
