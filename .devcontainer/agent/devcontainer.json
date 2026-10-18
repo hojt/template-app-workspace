@@ -8,8 +8,6 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind,readonly,relabel=shared",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "mounts": [
-    // Shared opencode login across workspaces
-    "source=${localEnv:HOME}/.local/share/opencode/auth.json,target=/home/developer/.local/share/opencode/auth.json,type=bind,relabel=shared",
     // Shared Claude Code login across workspaces
     "source=${localEnv:HOME}/.local/share/claude-agent,target=/home/developer/.claude,type=bind,relabel=shared",
     // The workspace is read-only; explicitly state what is writable
@@ -18,6 +16,7 @@
     // Agent-only state
     "target=/workspaces/${localWorkspaceFolderBasename}/.opencode,type=tmpfs,notmpcopyup,tmpfs-mode=1777",
     "target=/workspaces/${localWorkspaceFolderBasename}/.claude,type=tmpfs,notmpcopyup,tmpfs-mode=1777",
+    "source=${localWorkspaceFolderBasename}-agent-opencode-data,target=/home/developer/.local/share/opencode,type=volume",
     "source=${localWorkspaceFolderBasename}-agent-maven-cache,target=/home/developer/.m2,type=volume",
     "source=${localWorkspaceFolderBasename}-agent-npm-cache,target=/home/developer/.npm,type=volume",
     "source=${localWorkspaceFolderBasename}-agent-frontend-node-modules,target=/workspaces/${localWorkspaceFolderBasename}/components/example-frontend/node_modules,type=volume",
