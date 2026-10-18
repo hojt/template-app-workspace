@@ -11,6 +11,37 @@ agent_egress_network="${repo_name}-agent-egress"
 agent_proxy="${repo_name}-agent-proxy"
 agent_proxy_dir="${repo_root}/.devcontainer/agent/proxy"
 
+baseline_protected_paths=(
+  .
+  .devcontainer
+  .git
+  AGENTS.md
+  CLAUDE.md
+  Taskfile.yml
+  agent.sh
+  dev.sh
+  opencode.json
+)
+
+baseline_isolated_paths=(
+  .opencode
+  .claude
+)
+
+# Defaults; .devcontainer/agent/sandbox.conf describes the actual layout.
+workspace_repositories=()
+agent_writable_paths=()
+agent_protected_paths=()
+agent_isolated_paths=()
+agent_hidden_paths=()
+
+agent_sandbox_config="${repo_root}/.devcontainer/agent/sandbox.conf"
+
+if [[ -f "${agent_sandbox_config}" ]]; then
+  # shellcheck source=.devcontainer/agent/sandbox.conf
+  source "${agent_sandbox_config}"
+fi
+
 mode="${1:-dev}"
 agent_tool="opencode"
 
@@ -77,11 +108,32 @@ check_command() {
   fi
 }
 
+host_path() {
+  local path="$1"
+
+  if [[ "${path}" == repos/* ]]; then
+    printf '%s/../%s' "${repo_root}" "${path#repos/}"
+  else
+    printf '%s/%s' "${repo_root}" "${path}"
+  fi
+}
+
 check_file() {
   local file_path="$1"
   local description="$2"
 
   if [[ -f "${file_path}" ]]; then
+    check_passed "${description}"
+  else
+    check_failed "${description}"
+  fi
+}
+
+check_host_repository() {
+  local directory="$1"
+  local description="$2"
+
+  if [[ -d "${directory}/.git" ]]; then
     check_passed "${description}"
   else
     check_failed "${description}"
@@ -115,9 +167,22 @@ verify_host_environment() {
     ".devcontainer/agent/devcontainer.json" ||
     status=1
 
+  check_file \
+    "${agent_sandbox_config}" \
+    ".devcontainer/agent/sandbox.conf" ||
+    status=1
+
+  local repo
+  for repo in "${workspace_repositories[@]}"; do
+    check_host_repository \
+      "${repo_root}/../${repo}" \
+      "${repo} repository" ||
+      status=1
+  done
+
   check_directory \
     "${HOME}/.local/share/claude-agent" \
-    "~/.local/share/claude-agent" ||
+    "Claude Code login directory" ||
     status=1
 
   if ((status != 0)); then
@@ -323,49 +388,51 @@ verify_agent_environment() {
     sh -c '! env | cut -d= -f1 | grep -Eiq "token|secret|passw|api_?key|credential|auth"' ||
     status=1
 
-  local protected_path
-  for protected_path in \
-    . \
-    .devcontainer \
-    .git \
-    AGENTS.md \
-    CLAUDE.md \
-    Taskfile.yml \
-    agent.sh \
-    dev.sh \
-    opencode.json \
-    scripts; do
-    check_agent_path_readonly \
-      "${agent_workspace}/${protected_path}" \
-      "${protected_path} is read-only" ||
+  local repo
+  for repo in "${workspace_repositories[@]}"; do
+    check_agent_repository \
+      "${agent_workspace}/repos/${repo}" \
+      "${repo} repository is available" ||
       status=1
   done
 
-  local writable_path
-  for writable_path in \
-    components \
-    docs; do
-    check_agent_path_writable \
-      "${agent_workspace}/${writable_path}" \
-      "${writable_path} is writable" ||
+  local path
+  for path in \
+    "${baseline_protected_paths[@]}" \
+    "${agent_protected_paths[@]}"; do
+    check_agent_path_readonly "${agent_workspace}/${path}" "${path} is read-only" ||
+      status=1
+  done
+
+  for repo in "${workspace_repositories[@]}"; do
+    for path in "repos/${repo}" "repos/${repo}/.git"; do
+      check_agent_path_readonly "${agent_workspace}/${path}" "${path} is read-only" ||
+        status=1
+    done
+  done
+
+  for path in "${agent_writable_paths[@]}"; do
+    check_agent_path_writable "${agent_workspace}/${path}" "${path} is writable" ||
+      status=1
+  done
+
+  for path in \
+    "${baseline_isolated_paths[@]}" \
+    "${agent_isolated_paths[@]}" \
+    "${agent_hidden_paths[@]}"; do
+    check_agent_mountpoint "${agent_workspace}/${path}" "${path} is isolated" ||
+      status=1
+  done
+
+  for path in "${agent_hidden_paths[@]}"; do
+    # shellcheck disable=SC2016
+    check_agent "${path} is hidden" \
+      sh -c '[ -z "$(ls -A "$1")" ]' _ "${agent_workspace}/${path}" ||
       status=1
   done
 
   check_agent_command_absent podman "podman is not installed" || status=1
   check_agent_cannot_escalate "privilege escalation is not possible" || status=1
-
-  local isolated_path
-  for isolated_path in \
-    .opencode \
-    .claude \
-    components/example-frontend/node_modules \
-    components/example-frontend/dist \
-    components/example-backend/target; do
-    check_agent_mountpoint \
-      "${agent_workspace}/${isolated_path}" \
-      "${isolated_path} is isolated" ||
-      status=1
-  done
 
   check_agent "no new privileges" \
     grep -qE '^NoNewPrivs:[[:space:]]+1$' /proc/self/status || status=1
@@ -378,12 +445,15 @@ verify_agent_environment() {
   warn_agent "SELinux confinement is active" \
     sh -c 'grep -q ":container_t:" /proc/self/attr/current'
 
+  # shellcheck disable=SC2016
   check_agent "memory limit is set" \
     sh -c '[ "$(cat /sys/fs/cgroup/memory.max)" != max ]' || status=1
 
+  # shellcheck disable=SC2016
   check_agent "process limit is set" \
     sh -c '[ "$(cat /sys/fs/cgroup/pids.max)" != max ]' || status=1
 
+  # shellcheck disable=SC2016
   check_agent "only this workspace is mounted" \
     sh -c '[ "$(ls -A /workspaces)" = "$1" ]' _ "${repo_name}" || status=1
 
@@ -397,6 +467,18 @@ verify_agent_environment() {
   fi
 
   return "${status}"
+}
+
+ensure_mount_points() {
+  local repo path
+
+  for repo in "${workspace_repositories[@]}"; do
+    mkdir -p "${repo_root}/repos/${repo}"
+  done
+
+  for path in "${agent_hidden_paths[@]}"; do
+    mkdir -p "$(host_path "${path}")"
+  done
 }
 
 ensure_agent_network() {
@@ -511,6 +593,7 @@ enter_devcontainer() {
     echo "Starting agent container"
   fi
 
+  ensure_mount_points
   ensure_agent_network
   start_agent_proxy
 
@@ -538,11 +621,8 @@ enter_devcontainer() {
     exit_code=$?
 
   if ((exit_code != 0)); then
-    echo >&2
-    printf '%s✗%s %s exited with code %d.\n' \
-      "${red}" "${reset}" "${agent_tool}" "${exit_code}" >&2
     open_troubleshooting_shell \
-      "Agent executeable failed"
+      "${agent_tool} exited with code ${exit_code}"
   fi
 
   exit "${exit_code}"
