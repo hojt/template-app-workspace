@@ -16,8 +16,8 @@
     "source=${localWorkspaceFolder}/components,target=/workspaces/${localWorkspaceFolderBasename}/components,type=bind",
     "source=${localWorkspaceFolder}/docs,target=/workspaces/${localWorkspaceFolderBasename}/docs,type=bind",
     // Agent-only state
-    "target=/workspaces/${localWorkspaceFolderBasename}/.opencode,type=tmpfs,notmpcopyup",
-    "target=/workspaces/${localWorkspaceFolderBasename}/.claude,type=tmpfs,notmpcopyup",
+    "target=/workspaces/${localWorkspaceFolderBasename}/.opencode,type=tmpfs,notmpcopyup,tmpfs-mode=1777",
+    "target=/workspaces/${localWorkspaceFolderBasename}/.claude,type=tmpfs,notmpcopyup,tmpfs-mode=1777",
     "source=${localWorkspaceFolderBasename}-agent-maven-cache,target=/home/developer/.m2,type=volume",
     "source=${localWorkspaceFolderBasename}-agent-npm-cache,target=/home/developer/.npm,type=volume",
     "source=${localWorkspaceFolderBasename}-agent-frontend-node-modules,target=/workspaces/${localWorkspaceFolderBasename}/components/example-frontend/node_modules,type=volume",
