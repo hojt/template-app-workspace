@@ -257,7 +257,7 @@ verify_agent_environment() {
     status=1
 
   check_agent "egress proxy is reachable" \
-    curl --silent --max-time 10 --output /dev/null https://registry.npmjs.org ||
+    curl --silent --max-time 10 --output /dev/null https://models.opencode.ai ||
     status=1
 
   check_agent "hosts outside the allowlist are denied" \
