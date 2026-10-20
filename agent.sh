@@ -674,9 +674,15 @@ prepare_agent_clone() {
     git fetch --quiet origin
     git remote set-head origin --auto >/dev/null
 
+    default_branch="$(git symbolic-ref --short refs/remotes/origin/HEAD)"
+    local_branch="${default_branch#origin/}"
+
     if ! git rev-parse --quiet --verify HEAD >/dev/null; then
-      default_branch="$(git symbolic-ref --short refs/remotes/origin/HEAD)"
-      git checkout --quiet --force -B "${default_branch#origin/}" "${default_branch}"
+      git checkout --quiet --force -B "${local_branch}" "${default_branch}"
+    elif [ "$(git symbolic-ref --quiet --short HEAD)" = "${local_branch}" ] &&
+      [ -z "$(git status --porcelain)" ]; then
+      git merge --quiet --ff-only "${default_branch}" ||
+        echo "Agent clone: ${local_branch} could not be fast-forwarded" >&2
     fi
 
     for readme in .opencode/README.md .claude/README.md; do
