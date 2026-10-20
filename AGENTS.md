@@ -85,13 +85,11 @@ The agent environment does not expose:
 
 What to expect inside the sandbox:
 
-- The workspace is read-only, except for the paths listed as writable in
-  `sandbox.conf`. Writing elsewhere fails with "Read-only file system".
-- `.git` is read-only. The human developer stages, commits, and pushes.
-- `.opencode/` and `.claude/` are agent-only tmpfs mounts. They hide the
-  `README.md` files that keep the directories in the repository, so
-  `git status` shows those files as deleted. They are not deleted, and
-  nothing needs to be done about it.
+- The workspace is your own clone, created from the developer's
+  repository, which is available read-only as `origin`. The developer's
+  working tree is not visible to you.
+- `.opencode/` and `.claude/` are agent-only tmpfs mounts. Git is set to
+  ignore that they hide the `README.md` files kept in the repository.
 - Paths listed as hidden in `sandbox.conf` appear empty on purpose.
 - Network access goes through an egress proxy with an allowlist. A
   refused connection is intended, not a fault to fix.
@@ -107,11 +105,28 @@ human developer explicitly requests it for a concrete reason.
 
 ## Git
 
-Never create Git commits.
+You work in your own clone of this repository and deliver your work as
+branches. See ADR-0011 in `hojt/homelab`.
 
-Never rewrite Git history under any circumstances.
+- Start each task on a new branch from the latest default branch:
 
-The human developer always owns staging, commits, tags, and pushes.
+      git fetch origin
+      git switch -c agent/<topic> origin/main
+
+- Branch names must start with `agent/`. Other branches are not delivered.
+- Keep commits focused, with messages following Conventional Commits.
+- Deliver your work by pushing the branch with `git push`. This pushes to
+  your delivery repository, not to the developer's repository.
+- You may amend or rebase your own `agent/` branches. Never push to
+  `origin`, rewrite the default branch, or create tags.
+- The developer reviews, merges, tags, and publishes. Delivered branches
+  are never merged automatically.
+- When asked to remove a delivered branch, run
+  `git push delivery --delete agent/<topic>`.
+- You see committed work only. If you need changes the developer has not
+  committed, ask for them to be committed.
+- When asked to rebase a delivered branch, run `git fetch origin`,
+`git rebase origin/main`, and `git push --force-with-lease`.
 
 ## Architecture
 
