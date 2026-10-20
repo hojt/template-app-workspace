@@ -61,7 +61,7 @@ yellow=""
 reset=""
 
 usage() {
-  printf 'Usage: %s [rebuild|shell|proxy-log|claude]\n' "${0}"
+  printf 'Usage: %s [rebuild|shell|fetch|proxy-log|claude]\n' "${0}"
   printf '  PROXY_LOG_SINCE=<time>  limit proxy-log (e.g. -1h, today)\n'
 }
 
@@ -72,7 +72,7 @@ parse_arguments() {
   fi
 
   case "${mode}" in
-  dev | rebuild | shell | proxy-log)
+  dev | rebuild | shell | fetch | proxy-log)
     ;;
   claude)
     agent_tool="claude"
@@ -614,6 +614,46 @@ show_proxy_log() {
   }
 }
 
+fetch_agent_branches() {
+  if [[ "${agent_workspace_mode}" != "clone" ]]; then
+    echo "fetch requires agent_workspace_mode=clone in sandbox.conf" >&2
+    exit 1
+  fi
+
+  local bundle
+  bundle="$(mktemp --suffix=.bundle)"
+  # shellcheck disable=SC2064
+  trap "rm -f '${bundle}'" RETURN
+
+  # The bundle is created inside the agent container and only read as data
+  # on the host. The host never runs Git inside the delivery repository.
+  # shellcheck disable=SC2016
+  if ! agent_exec sh -euc '
+    cd "$1"
+    if [ -n "$(git for-each-ref --format=x refs/heads/agent/)" ]; then
+      git bundle create --quiet - --branches="agent/*" | base64
+    fi
+  ' _ "${agent_delivery}" | base64 --decode >"${bundle}"; then
+    echo "Could not read agent branches. Start the agent container with ./agent.sh." >&2
+    exit 1
+  fi
+
+  if [[ -s "${bundle}" ]]; then
+    git -C "${repo_root}" fetch --prune --no-tags \
+      "${bundle}" '+refs/heads/agent/*:refs/remotes/agent/*'
+  else
+    # No agent branches are delivered; drop any previously fetched ones.
+    git -C "${repo_root}" for-each-ref \
+      --format='delete %(refname)' refs/remotes/agent/ |
+      git -C "${repo_root}" update-ref --stdin
+  fi
+
+  echo
+  echo "Agent branches:"
+  git -C "${repo_root}" for-each-ref refs/remotes/agent \
+    --format='  %(refname:short)  %(committerdate:relative)  %(subject)'
+}
+
 prepare_agent_clone() {
   echo
   echo "Preparing agent clone of ${repo_name}"
@@ -787,6 +827,11 @@ parse_arguments "$@"
 
 if [[ "${mode}" == "proxy-log" ]]; then
   show_proxy_log
+  exit 0
+fi
+
+if [[ "${mode}" == "fetch" ]]; then
+  fetch_agent_branches
   exit 0
 fi
 
