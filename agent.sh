@@ -4,12 +4,12 @@ set -euo pipefail
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo_name="$(basename -- "${repo_root}")"
-agent_workspace="/workspaces/${repo_name}"
 agent_devcontainer_config="${repo_root}/.devcontainer/agent/devcontainer.json"
 agent_network="${repo_name}-agent"
 agent_egress_network="${repo_name}-agent-egress"
 agent_proxy="${repo_name}-agent-proxy"
 agent_proxy_dir="${repo_root}/.devcontainer/agent/proxy"
+agent_workspace_mode="mount"
 claude_token_file="${XDG_CONFIG_HOME:-${HOME}/.config}/claude-agent/oauth-token"
 
 baseline_protected_paths=(
@@ -44,6 +44,12 @@ if [[ -f "${agent_sandbox_config}" ]]; then
   # shellcheck source=.devcontainer/agent/sandbox.conf
   source "${agent_sandbox_config}"
 fi
+
+agent_workspace="/workspaces/${repo_name}"
+if [[ "${agent_workspace_mode}" == "clone" ]]; then
+  agent_workspace="/agent-workspaces/${repo_name}"
+fi
+agent_upstream="/upstream/${repo_name}.git"
 
 mode="${1:-dev}"
 agent_tool="opencode"
@@ -401,24 +407,36 @@ verify_agent_environment() {
   done
 
   local path
-  for path in \
-    "${baseline_protected_paths[@]}" \
-    "${agent_protected_paths[@]}"; do
-    check_agent_path_readonly "$(agent_path "${path}")" "${path} is read-only" ||
-      status=1
-  done
 
-  for repo in "${workspace_repositories[@]}"; do
-    for path in "repos/${repo}" "repos/${repo}/.git"; do
+  if [[ "${agent_workspace_mode}" == "clone" ]]; then
+    check_agent_mountpoint "${agent_workspace}" "workspace is an agent-owned clone" ||
+      status=1
+    check_agent_path_writable "${agent_workspace}" "workspace is writable" ||
+      status=1
+    check_agent_path_readonly "${agent_upstream}" "upstream repository is read-only" ||
+      status=1
+    check_agent_path_absent "/workspaces/${repo_name}" "developer working tree is not mounted" ||
+      status=1
+  else
+    for path in \
+      "${baseline_protected_paths[@]}" \
+      "${agent_protected_paths[@]}"; do
       check_agent_path_readonly "$(agent_path "${path}")" "${path} is read-only" ||
         status=1
     done
-  done
 
-  for path in "${agent_writable_paths[@]}"; do
-    check_agent_path_writable "$(agent_path "${path}")" "${path} is writable" ||
-      status=1
-  done
+    for repo in "${workspace_repositories[@]}"; do
+      for path in "repos/${repo}" "repos/${repo}/.git"; do
+        check_agent_path_readonly "$(agent_path "${path}")" "${path} is read-only" ||
+          status=1
+      done
+    done
+
+    for path in "${agent_writable_paths[@]}"; do
+      check_agent_path_writable "$(agent_path "${path}")" "${path} is writable" ||
+        status=1
+    done
+  fi
 
   for path in \
     "${baseline_isolated_paths[@]}" \
@@ -466,7 +484,8 @@ verify_agent_environment() {
 
   # shellcheck disable=SC2016
   check_agent "only this workspace is mounted" \
-    sh -c '[ "$(ls -A /workspaces)" = "$1" ]' _ "${repo_name}" || status=1
+    sh -c '[ "$(ls -A "$(dirname "$1")")" = "$(basename "$1")" ]' _ "${agent_workspace}" ||
+    status=1
 
   check_agent "Claude Code managed settings are in place" \
     test -f /etc/claude-code/managed-settings.json ||
@@ -590,6 +609,37 @@ show_proxy_log() {
   }
 }
 
+prepare_agent_clone() {
+  echo
+  echo "Preparing agent clone of ${repo_name}"
+
+  # shellcheck disable=SC2016
+  agent_exec sh -euc '
+    workspace="$1"
+    upstream="$2"
+    cd "${workspace}"
+
+    if [ ! -d .git ]; then
+      git init --quiet
+      git remote add origin "file://${upstream}"
+    fi
+
+    git fetch --quiet origin
+    git remote set-head origin --auto >/dev/null
+
+    if ! git rev-parse --quiet --verify HEAD >/dev/null; then
+      default_branch="$(git symbolic-ref --short refs/remotes/origin/HEAD)"
+      git checkout --quiet --force -B "${default_branch#origin/}" "${default_branch}"
+    fi
+
+    for readme in .opencode/README.md .claude/README.md; do
+      if git ls-files --error-unmatch "${readme}" >/dev/null 2>&1; then
+        git update-index --skip-worktree "${readme}"
+      fi
+    done
+  ' _ "${agent_workspace}" "${agent_upstream}"
+}
+
 enter_devcontainer() {
   local -a up_arguments=(
     --workspace-folder "${repo_root}"
@@ -611,6 +661,12 @@ enter_devcontainer() {
   if ! devcontainer up "${up_arguments[@]}"; then
     open_troubleshooting_shell \
       "Failed to start agent container"
+  fi
+
+  if [[ "${agent_workspace_mode}" == "clone" ]] &&
+    ! prepare_agent_clone; then
+    open_troubleshooting_shell \
+      "Failed to prepare agent clone"
   fi
 
   if ! verify_agent_environment; then
