@@ -50,6 +50,7 @@ if [[ "${agent_workspace_mode}" == "clone" ]]; then
   agent_workspace="/agent-workspaces/${repo_name}"
 fi
 agent_upstream="/upstream/${repo_name}.git"
+agent_delivery="/agent-delivery/${repo_name}.git"
 
 mode="${1:-dev}"
 agent_tool="opencode"
@@ -417,6 +418,10 @@ verify_agent_environment() {
       status=1
     check_agent_path_absent "/workspaces/${repo_name}" "developer working tree is not mounted" ||
       status=1
+    check_agent_mountpoint "${agent_delivery}" "delivery repository is isolated" ||
+      status=1
+    check_agent_path_writable "${agent_delivery}" "delivery repository is writable" ||
+      status=1
   else
     for path in \
       "${baseline_protected_paths[@]}" \
@@ -617,6 +622,8 @@ prepare_agent_clone() {
   agent_exec sh -euc '
     workspace="$1"
     upstream="$2"
+    delivery="$3"
+    repo="$4"
     cd "${workspace}"
 
     if [ ! -d .git ]; then
@@ -637,7 +644,20 @@ prepare_agent_clone() {
         git update-index --skip-worktree "${readme}"
       fi
     done
-  ' _ "${agent_workspace}" "${agent_upstream}"
+
+    if [ ! -f "${delivery}/HEAD" ]; then
+      git init --bare --quiet "${delivery}"
+    fi
+
+    if ! git remote get-url delivery >/dev/null 2>&1; then
+      git remote add delivery "file://${delivery}"
+    fi
+
+    git config remote.pushDefault delivery
+    git config push.default current
+    git config user.name "Coding agent"
+    git config user.email "coding-agent@${repo}.invalid"
+  ' _ "${agent_workspace}" "${agent_upstream}" "${agent_delivery}" "${repo_name}"
 }
 
 enter_devcontainer() {
