@@ -42,7 +42,7 @@ export function App() {
     <main>
       <h1>Example App</h1>
       {error ? (
-        <p role="alert">Unable to load greeting.</p>
+        <p role="alert">Unable to load greeting. Please try again later.</p>
       ) : greeting ? (
         <p>{greeting}</p>
       ) : (

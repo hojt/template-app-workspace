@@ -27,5 +27,18 @@ test('shows an error when the greeting request fails', async () => {
 
   render(<App />)
 
-  expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load greeting.')
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Unable to load greeting. Please try again later.',
+  )
+})
+
+test('shows an error when the greeting request cannot be sent', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Network error')))
+
+  render(<App />)
+
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Unable to load greeting. Please try again later.',
+  )
+  expect(screen.queryByRole('status')).not.toBeInTheDocument()
 })
