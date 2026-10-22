@@ -20,6 +20,7 @@ version integration.
 - Each workspace keeps its own agent state. Before the first agent session, log in to OpenCode from an agent shell: `./agent.sh shell`, then `opencode auth login`. Claude Code reuses the shared token in `~/.config/claude-agent/oauth-token`.
 - The user reviews, stages, and creates commits in this repository. The agent works in its own clone and delivers branches named `agent/<topic>`, which the user fetches with `./agent.sh fetch`, reviews, and merges. See the README for the workflow.
 - Normal verification commands do not require further commits. Image builds require a resolvable Git `HEAD`.
+- The template's `tasks/` directory starts with an empty backlog. Record the application's work there as tasks, as described in `tasks/README.md`.
 
 The remaining steps can be done by hand or delegated to the agent. Agent work
 arrives as branches, so each step can be reviewed before it is merged.

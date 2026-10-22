@@ -126,7 +126,7 @@ branches. See ADR-0011 in `hojt/homelab`.
 - You see committed work only. If you need changes the developer has not
   committed, ask for them to be committed.
 - When asked to rebase a delivered branch, run `git fetch origin`,
-`git rebase origin/main`, and `git push --force-with-lease`.
+  `git rebase origin/main`, and `git push --force-with-lease`.
 - When a task is delivered, switch back to the default branch with
   `git switch main`.
 

@@ -125,13 +125,23 @@ Claude Code uses a token shared by all workspaces, created once with
 `claude setup-token` and stored on the host in
 `~/.config/claude-agent/oauth-token`.
 
+### Giving The Agent Work
+
+Give the agent work by adding tasks to `tasks/`, as described in
+`tasks/README.md`, and committing them. Order the tasks that should be
+done next in `tasks/BACKLOG.md`, then ask the agent to take the next
+task, or name the task to work on. The agent closes a task in the same
+branch that completes it, and may propose new tasks on branches named
+`agent/propose-<task-name>`. See ADR-0012 in `hojt/homelab`.
+
 ### Working With Agent Branches
 
 The agent works in its own clone of this repository, not in your working
 tree, and sees committed history only. It delivers its work as branches
 named `agent/<topic>`. See ADR-0011 in `hojt/homelab`.
 
-Fetch delivered branches from the host while the agent container is running:
+Fetch delivered branches while the agent container is running, from the
+host or from the developer container:
 
 ```bash
 ./agent.sh fetch
