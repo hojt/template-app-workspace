@@ -15,22 +15,25 @@ version integration.
 ## Repository Preconditions
 
 - A Git checkout keeps its existing `.git` directory. A file copy must not copy the template's `.git`, `node_modules`, or build results.
-- For a file copy, run `git init` from the new repository root before running `./agent.sh`.
+- Rename the workspace directory to the application name before the first agent session. Agent state, including the agent's clone, its delivery repository, and its OpenCode login, is tied to the directory name.
+- For a file copy, run `git init` from the new repository root, then commit the copied template as the starting point: `git add .` and `git commit -m "chore: start from template-app-workspace"`. The agent clones committed history only, so `./agent.sh` cannot start before the repository has a commit.
 - Each workspace keeps its own agent state. Before the first agent session, log in to OpenCode from an agent shell: `./agent.sh shell`, then `opencode auth login`. Claude Code reuses the shared token in `~/.config/claude-agent/oauth-token`.
-- Normal verification commands can run without commits. Review and stage the application, then make the first commit before image builds that require `HEAD`.
-- The user reviews, stages, and creates the first commit. The agent must not create it.
+- The user reviews, stages, and creates commits in this repository. The agent works in its own clone and delivers branches named `agent/<topic>`, which the user fetches with `./agent.sh fetch`, reviews, and merges. See the README for the workflow.
+- Normal verification commands do not require further commits. Image builds require a resolvable Git `HEAD`.
+
+The remaining steps can be done by hand or delegated to the agent. Agent work
+arrives as branches, so each step can be reviewed before it is merged.
 
 ## Identity And Development Environment
 
-- Rename the workspace directory and Git repository to the application name.
+- Rename the Git repository to the application name, matching the workspace directory.
 - Container, volume, network, and proxy names derive from the workspace directory name, so renaming the directory renames them. Give any new volume a name based on `${localWorkspaceFolderBasename}` in the same way.
 - Update workspace-facing messages and documentation. `agent.sh` is shared across workspaces and needs no changes; its workspace-specific layout lives in `.devcontainer/agent/sandbox.conf`.
 - Select a host frontend port with `FRONTEND_HOST_PORT=<port> ./dev.sh rebuild`. Keep Vite's internal port 5173 and its `0.0.0.0` binding. Keep the agent devcontainer free of published ports.
 
 ## Components And Metadata
 
-- Rename `components/example-backend` and `components/example-frontend` to the new component names.
-- Update the agent sandbox for the renamed components: the isolated build output paths in `.devcontainer/agent/sandbox.conf`, and the matching volume mounts in `.devcontainer/agent/devcontainer.json`. `agent.sh` refuses to start until they match.
+- Rename `components/example-backend` and `components/example-frontend` to the new component names. The agent works in its own clone, so renaming components needs no sandbox changes.
 - Update root task directories and both version scripts to the renamed component paths. Preserve the existing task names unless a deliberate interface change is required.
 - For the supplied Java/Maven backend, change the Maven `groupId`, `artifactId`, Java package, resource paths, and affected backend tests. If replacing it, provide equivalent component tasks and version integration for the selected backend stack.
 - The supplied frontend can be replaced by another Node.js/npm stack. Update its package name, display text, telemetry service name, tests, component tasks, Containerfile, and development-server configuration for that stack.
