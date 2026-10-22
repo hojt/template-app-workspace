@@ -138,9 +138,10 @@ format, and ADR-0012 in `hojt/homelab` for the reasoning.
 - Run `git fetch origin` before choosing a task, so that you see the
   developer's latest tasks and backlog.
 - Work on the task the developer names. When asked to take the next
-  task, take the first task with status `open` in `tasks/BACKLOG.md`.
-  Do not start tasks that are not in the backlog unless the developer
-  names them.
+  task, take the first task with status `open` in `tasks/BACKLOG.md`
+  that does not already have an `agent/<task-name>` branch, locally or
+  in the delivery repository (`git ls-remote delivery`). Do not start
+  tasks that are not in the backlog unless the developer names them.
 - Work on one task per branch, named `agent/<task-name>`, starting from
   `origin/main`.
 - When the task is complete, in the same branch, set its status to `done`
