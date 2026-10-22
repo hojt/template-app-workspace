@@ -1,6 +1,6 @@
 ---
 title: Document the greeting configuration
-status: open
+status: done
 ---
 
 ## Goal
