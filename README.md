@@ -29,19 +29,25 @@ version integration.
 
 For a Git checkout, use its existing `.git` directory. For a file copy, do not
 copy the template's `.git`, `node_modules`, or build results. From the new
-repository root, initialize Git before starting the agent environment:
+repository root, initialize Git and commit the copied template as the starting
+point before starting the agent environment:
 
 ```bash
 git init
+git add .
+git commit -m "chore: start from template-app-workspace"
 ./agent.sh
 ```
 
-Normal verification commands do not require commits. Review and stage the new
-application, then create its first commit before running image builds: image
-tags require a resolvable Git `HEAD`. The user, not the agent, creates that
-commit.
+The agent works in its own clone of this repository and sees committed history
+only, so the repository needs at least one commit before the agent can start.
+The user, not the agent, creates commits in this repository; the agent delivers
+its work as branches, described under [Coding-Agent Environment](#coding-agent-environment).
 
-The host needs Podman, the Dev Container CLI, and tmux. Start the developer
+Normal verification commands do not require commits. Image builds do: image
+tags require a resolvable Git `HEAD`.
+
+The host needs Podman, the Dev Container CLI, Git, and tmux. Start the developer
 container from the workspace root:
 
 ```bash
@@ -119,18 +125,65 @@ Claude Code uses a token shared by all workspaces, created once with
 `claude setup-token` and stored on the host in
 `~/.config/claude-agent/oauth-token`.
 
-The agent can read the whole workspace but only write to the paths
-listed in `.devcontainer/agent/sandbox.conf`, and its network access
-goes through an egress proxy. Show which hosts it has reached or been
-refused with:
+### Working With Agent Branches
+
+The agent works in its own clone of this repository, not in your working
+tree, and sees committed history only. It delivers its work as branches
+named `agent/<topic>`. See ADR-0011 in `hojt/homelab`.
+
+Fetch delivered branches from the host while the agent container is running:
+
+```bash
+./agent.sh fetch
+```
+
+Review a branch before building or testing it:
+
+```bash
+git log --oneline main..agent/<topic>
+git diff main...agent/<topic>
+```
+
+Merge it when you are satisfied, either keeping a linear history or
+recording the merge. Agent commits keep their `Coding agent` author in
+both cases.
+
+**Linear history.** The branch must be based on the current `main`. If
+`main` has moved on, ask the agent to rebase its branch onto
+`origin/main` and push it again, then fetch and merge:
+
+```bash
+./agent.sh fetch
+git merge --ff-only agent/<topic>
+```
+
+**Merge commit.** Records the review as a merge, groups the branch's
+commits, and allows reverting the whole branch at once with
+`git revert -m 1 <merge>`:
+
+```bash
+git merge --no-ff agent/<topic>
+```
+
+The agent picks up your commits the next time it starts, or when it runs
+`git fetch origin`. To remove a delivered branch, ask the agent to delete
+it. Only fetch through `./agent.sh fetch`; never push to the agent's
+delivery repository or run Git commands inside it, since it is under the
+agent's control.
+
+### Containment
+
+The agent's network access goes through an egress proxy. Show which
+hosts it has reached or been refused with:
 
 ```bash
 ./agent.sh proxy-log
 ```
 
-When renaming or adding components, update `sandbox.conf` and the
-matching mounts in `.devcontainer/agent/devcontainer.json`. `agent.sh`
-refuses to start if they do not match.
+The sandbox layout is described in `.devcontainer/agent/sandbox.conf`,
+and `agent.sh` verifies it before starting an agent. Because the agent
+works in its own clone, renaming or adding components needs no sandbox
+changes.
 
 See the *Agent containment* section in `AGENTS.md` and ADR-0010 in
 `hojt/homelab` for details.
