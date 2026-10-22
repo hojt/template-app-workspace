@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import { App } from './App'
 
@@ -41,4 +41,23 @@ test('shows an error when the greeting request cannot be sent', async () => {
     'Unable to load greeting. Please try again later.',
   )
   expect(screen.queryByRole('status')).not.toBeInTheDocument()
+})
+
+test('retries loading the greeting after a failed request', async () => {
+  const fetchGreeting = vi
+    .fn()
+    .mockRejectedValueOnce(new TypeError('Network error'))
+    .mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ message: 'Hello from Quarkus' }),
+    })
+  vi.stubGlobal('fetch', fetchGreeting)
+
+  render(<App />)
+
+  expect(await screen.findByRole('alert')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+
+  expect(await screen.findByText('Hello from Quarkus')).toBeInTheDocument()
+  expect(fetchGreeting).toHaveBeenCalledTimes(2)
 })

@@ -1,6 +1,6 @@
-.---
+---
 title: Let the user retry loading the greeting
-status: open
+status: done
 ---
 
 ## Goal

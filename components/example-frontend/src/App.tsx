@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 type Greeting = {
   message: string
@@ -7,34 +7,40 @@ type Greeting = {
 export function App() {
   const [greeting, setGreeting] = useState<string>()
   const [error, setError] = useState(false)
+  const mounted = useRef(true)
+  const latestRequest = useRef(0)
 
-  useEffect(() => {
-    let cancelled = false
+  async function loadGreeting() {
+    const request = ++latestRequest.current
 
-    async function loadGreeting() {
-      try {
-        const response = await fetch('/api/greeting')
-
-        if (!response.ok) {
-          throw new Error('Greeting request failed')
-        }
-
-        const data = (await response.json()) as Greeting
-
-        if (!cancelled) {
-          setGreeting(data.message)
-        }
-      } catch {
-        if (!cancelled) {
-          setError(true)
-        }
-      }
+    if (mounted.current && request === latestRequest.current) {
+      setError(false)
     }
 
+    try {
+      const response = await fetch('/api/greeting')
+
+      if (!response.ok) {
+        throw new Error('Greeting request failed')
+      }
+
+      const data = (await response.json()) as Greeting
+      if (mounted.current && request === latestRequest.current) {
+        setGreeting(data.message)
+      }
+    } catch {
+      if (mounted.current && request === latestRequest.current) {
+        setError(true)
+      }
+    }
+  }
+
+  useEffect(() => {
+    mounted.current = true
     void loadGreeting()
 
     return () => {
-      cancelled = true
+      mounted.current = false
     }
   }, [])
 
@@ -42,7 +48,12 @@ export function App() {
     <main>
       <h1>Example App</h1>
       {error ? (
-        <p role="alert">Unable to load greeting. Please try again later.</p>
+        <>
+          <p role="alert">Unable to load greeting. Please try again later.</p>
+          <button type="button" onClick={() => void loadGreeting()}>
+            Retry
+          </button>
+        </>
       ) : greeting ? (
         <p>{greeting}</p>
       ) : (
