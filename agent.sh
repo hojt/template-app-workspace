@@ -212,124 +212,84 @@ agent_exec() {
     "$@"
 }
 
-check_agent_repository() {
-  local directory="$1"
+agent_checks=()
+
+queue_check() {
+  local kind="$1"
   local description="$2"
+  shift 2
 
-  if agent_exec test -d "${directory}/.git"; then
-    check_passed "${description}"
-  else
-    check_failed "${description}"
-  fi
-}
+  local line arg
+  printf -v line '%q %q' "${kind}" "${description}"
+  for arg in "$@"; do
+    printf -v line '%s %q' "${line}" "${arg}"
+  done
 
-check_agent_path_absent() {
-  local path="$1"
-  local description="$2"
-
-  if agent_exec test ! -e "${path}"; then
-    check_passed "${description}"
-  else
-    check_failed "${description}"
-  fi
-}
-
-check_agent_socket_absent() {
-  local path="$1"
-  local description="$2"
-
-  if agent_exec test ! -S "${path}"; then
-    check_passed "${description}"
-  else
-    check_failed "${description}"
-  fi
-}
-
-check_agent_env_absent() {
-  local variable="$1"
-  local description="$2"
-
-  if ! agent_exec printenv "${variable}" >/dev/null 2>&1; then
-    check_passed "${description}"
-  else
-    check_failed "${description}"
-  fi
-}
-
-check_agent_path_readonly() {
-  local path="$1"
-  local description="$2"
-
-  if agent_exec test ! -w "${path}"; then
-    check_passed "${description}"
-  else
-    check_failed "${description}"
-  fi
-}
-
-check_agent_path_writable() {
-  local path="$1"
-  local description="$2"
-
-  if agent_exec test -w "${path}"; then
-    check_passed "${description}"
-  else
-    check_failed "${description}"
-  fi
-}
-
-check_agent_mountpoint() {
-  local path="$1"
-  local description="$2"
-
-  if agent_exec mountpoint -q "${path}"; then
-    check_passed "${description}"
-  else
-    check_failed "${description}"
-  fi
-}
-
-check_agent_command_absent() {
-  local command_name="$1"
-  local description="$2"
-
-  if ! agent_exec sh -c "command -v ${command_name}" >/dev/null 2>&1; then
-    check_passed "${description}"
-  else
-    check_failed "${description}"
-  fi
-}
-
-check_agent_cannot_escalate() {
-  local description="$1"
-
-  if ! agent_exec sudo -n true >/dev/null 2>&1; then
-    check_passed "${description}"
-  else
-    check_failed "${description}"
-  fi
+  agent_checks+=("${line}")
 }
 
 check_agent() {
-  local description="$1"
-  shift
-
-  if agent_exec "$@" >/dev/null 2>&1; then
-    check_passed "${description}"
-  else
-    check_failed "${description}"
-  fi
+  queue_check check "$@"
 }
 
 warn_agent() {
-  local description="$1"
-  shift
+  queue_check warn "$@"
+}
 
-  if agent_exec "$@" >/dev/null 2>&1; then
-    check_passed "${description}"
-  else
-    printf '  %s!%s %s\n' "${yellow}" "${reset}" "${description}" >&2
+check_agent_repository() { check_agent "$2" test -d "$1/.git"; }
+# shellcheck disable=SC2016
+check_agent_path_readonly() { check_agent "$2" sh -c '! test -w "$1"' _ "$1"; }
+check_agent_path_writable() { check_agent "$2" test -w "$1"; }
+# shellcheck disable=SC2016
+check_agent_path_absent() { check_agent "$2" sh -c '! test -e "$1"' _ "$1"; }
+# shellcheck disable=SC2016
+check_agent_socket_absent() { check_agent "$2" sh -c '! test -S "$1"' _ "$1"; }
+check_agent_mountpoint() { check_agent "$2" mountpoint -q "$1"; }
+# shellcheck disable=SC2016
+check_agent_env_absent() { check_agent "$2" sh -c '! printenv "$1"' _ "$1"; }
+# shellcheck disable=SC2016
+check_agent_command_absent() { check_agent "$2" sh -c '! command -v "$1"' _ "$1"; }
+check_agent_cannot_escalate() { check_agent "$1" sh -c '! sudo -n true'; }
+
+run_agent_checks() {
+  local expected="${#agent_checks[@]}"
+  local received=0
+  local status=0
+  local script results outcome description
+
+  # shellcheck disable=SC2016
+  script='
+check() {
+  d="$1"; shift
+  if "$@" >/dev/null 2>&1; then printf "pass\t%s\n" "$d"; else printf "fail\t%s\n" "$d"; fi
+}
+warn() {
+  d="$1"; shift
+  if "$@" >/dev/null 2>&1; then printf "pass\t%s\n" "$d"; else printf "warn\t%s\n" "$d"; fi
+}
+'
+  script+="$(printf '%s\n' "${agent_checks[@]}")"
+  agent_checks=()
+
+  results="$(agent_exec bash -c "${script}")" || true
+
+  while IFS=$'\t' read -r outcome description; do
+    [[ -z "${outcome}" ]] && continue
+    received=$((received + 1))
+
+    case "${outcome}" in
+    pass) check_passed "${description}" ;;
+    warn) printf '  %s!%s %s\n' "${yellow}" "${reset}" "${description}" >&2 ;;
+    *) check_failed "${description}" || status=1 ;;
+    esac
+  done <<<"${results}"
+
+  if ((received != expected)); then
+    check_failed "all ${expected} checks reported, got ${received}" || true
+    status=1
   fi
+
+  return "${status}"
 }
 
 verify_agent_environment() {
@@ -340,13 +300,10 @@ verify_agent_environment() {
 
   init_colors
 
-  if ! check_agent_repository \
+  check_agent_repository \
     "${agent_workspace}" \
-    "${repo_name} repository is available"; then
-    echo >&2
-    echo "Cannot verify the agent environment." >&2
-    return 1
-  fi
+    "${repo_name} repository is available" ||
+    status=1
 
   check_agent "direct internet access is blocked" \
     sh -c '! curl --noproxy "*" --silent --max-time 5 --output /dev/null https://example.com' ||
@@ -495,6 +452,8 @@ verify_agent_environment() {
   check_agent "Claude Code managed settings are in place" \
     test -f /etc/claude-code/managed-settings.json ||
     status=1
+
+  run_agent_checks || status=1
 
   if ((status != 0)); then
     echo >&2
