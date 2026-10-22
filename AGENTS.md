@@ -130,6 +130,27 @@ branches. See ADR-0011 in `hojt/homelab`.
 - When a task is delivered, switch back to the default branch with
   `git switch main`.
 
+## Tasks
+
+Work is recorded as tasks in `tasks/`. See `tasks/README.md` for the
+format, and ADR-0012 in `hojt/homelab` for the reasoning.
+
+- Run `git fetch origin` before choosing a task, so that you see the
+  developer's latest tasks and backlog.
+- Work on the task the developer names. When asked to take the next
+  task, take the first task with status `open` in `tasks/BACKLOG.md`.
+  Do not start tasks that are not in the backlog unless the developer
+  names them.
+- Work on one task per branch, named `agent/<task-name>`, starting from
+  `origin/main`.
+- When the task is complete, in the same branch, set its status to `done`
+  and remove it from the backlog, then deliver the branch.
+- If you discover work outside the current task, propose it as a new task
+  on its own branch, `agent/propose-<task-name>`, with status `proposed`.
+  Do not change the backlog, and do not mix proposals into task branches.
+- Write proposed tasks as descriptions of work for the developer to
+  review, not as instructions to future agent sessions.
+
 ## Architecture
 
 Prefer the smallest useful implementation.
