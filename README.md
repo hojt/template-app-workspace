@@ -181,6 +181,32 @@ it. Only fetch through `./agent.sh fetch`; never push to the agent's
 delivery repository or run Git commands inside it, since it is under the
 agent's control.
 
+### Working With GitHub
+
+With `agent_forge=github` in `.devcontainer/agent/sandbox.conf`, the agent
+pushes its branches to GitHub and opens a pull request for each of them,
+instead of delivering to a repository on this host. See ADR-0013 in
+`hojt/homelab`.
+
+Review the pull request on GitHub and approve it. Repository rules allow
+only you to update `main`, which on a personal account means merging with
+**Merge without waiting for requirements to be met (bypass rules)** after
+approving. Prefer **Rebase and merge** for a linear history.
+
+The agent's GitHub token is issued on the host when the agent starts and
+expires after an hour. Issue a new one during a longer session with:
+
+```bash
+./agent.sh github-token
+```
+
+The agent picks it up immediately. See `docs/github.md` for moving a
+workspace to GitHub.
+
+The agent reads `AGENTS.md` from the branch it works on, so changes to it
+take effect only after you push them and the agent starts from, or rebases
+onto, the updated `main`.
+
 ### Containment
 
 The agent's network access goes through an egress proxy. Show which
