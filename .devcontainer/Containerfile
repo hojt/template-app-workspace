@@ -85,6 +85,11 @@ ARG USERNAME
 
 USER root
 
+RUN dnf install -y gh \
+    && dnf clean all
+
+COPY .devcontainer/agent/gh-wrapper.sh /usr/local/bin/gh
+
 RUN mkdir -p \
         /home/${USERNAME}/.local/share/opencode \
         /home/${USERNAME}/.claude \
