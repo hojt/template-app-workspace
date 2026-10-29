@@ -1,0 +1,3 @@
+# Hosts this application's agent may reach in addition to the shared
+# allowlist in .devcontainer/agent/proxy/. One fnmatch pattern per line.
+# Owned by the application. See ADR-0010.

@@ -43,6 +43,7 @@ agent_isolated_paths=()
 agent_hidden_paths=()
 
 agent_sandbox_config="${repo_root}/.devcontainer/agent/sandbox.conf"
+agent_sandbox_allowlist="${repo_root}/.devcontainer/agent/sandbox.allowlist"
 
 if [[ -f "${agent_sandbox_config}" ]]; then
   # shellcheck source=.devcontainer/agent/sandbox.conf
@@ -527,8 +528,32 @@ ensure_agent_network() {
   fi
 }
 
+prepare_proxy_allowlist() {
+  local allowlist_dir="${XDG_RUNTIME_DIR}/agent-proxy/${repo_name}"
+  mkdir -p "${allowlist_dir}"
+
+  # Readable by the proxy's unprivileged user; the directory stays private
+  # to the host user through XDG_RUNTIME_DIR.
+  {
+    cat "${agent_proxy_dir}/allowlist"
+    if [[ "${agent_forge}" == "github" ]]; then
+      cat "${agent_proxy_dir}/allowlist.github"
+    fi
+    if [[ -f "${agent_sandbox_allowlist}" ]]; then
+      cat "${agent_sandbox_allowlist}"
+    fi
+  } >"${allowlist_dir}/allowlist.new"
+  chmod 644 "${allowlist_dir}/allowlist.new"
+  mv "${allowlist_dir}/allowlist.new" "${allowlist_dir}/allowlist"
+
+  printf '%s' "${allowlist_dir}/allowlist"
+}
+
 start_agent_proxy() {
   echo "Starting egress proxy ${agent_proxy}"
+
+  local allowlist
+  allowlist="$(prepare_proxy_allowlist)"
 
   podman build \
     --quiet \
@@ -540,6 +565,7 @@ start_agent_proxy() {
     --replace \
     --name "${agent_proxy}" \
     --log-driver=journald \
+    --mount "type=bind,source=${allowlist},target=/etc/tinyproxy/allowlist,readonly,relabel=private" \
     --network "${agent_egress_network}" \
     --network "${agent_network}" \
     --read-only \
