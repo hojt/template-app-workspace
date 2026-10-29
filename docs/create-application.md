@@ -14,9 +14,21 @@ version integration.
 
 ## Repository Preconditions
 
-- A Git checkout keeps its existing `.git` directory. A file copy must not copy the template's `.git`, `node_modules`, or build results.
-- Rename the workspace directory to the application name before the first agent session. Agent state, including the agent's clone, its delivery repository, and its OpenCode login, is tied to the directory name.
-- For a file copy, run `git init` from the new repository root, then commit the copied template as the starting point: `git add .` and `git commit -m "chore: start from template-app-workspace"`. The agent clones committed history only, so `./agent.sh` cannot start before the repository has a commit.
+- Create the application from a released template version, so that it keeps
+  the template's history and can merge later versions. See ADR-0014 in
+  `hojt/homelab` and `docs/template.md`. Clone directly into a directory with
+  the application's name:
+
+      git clone --no-tags --branch <version> \
+        https://github.com/hojt/template-app-workspace.git <application>
+      cd <application>
+      git switch -c main
+      git remote remove origin
+      git commit --allow-empty -m "chore(template): start from <version>"
+
+  The agent clones committed history only, so this commit also lets
+  `./agent.sh` start.
+- Add the application's own `origin` when it gets a repository of its own.
 - Each workspace keeps its own agent state. Before the first agent session, log in to OpenCode from an agent shell: `./agent.sh shell`, then `opencode auth login`. Claude Code reuses the shared token in `~/.config/claude-agent/oauth-token`.
 - The user reviews, stages, and creates commits in this repository. The agent works in its own clone and delivers branches named `agent/<topic>`, which the user fetches with `./agent.sh fetch`, reviews, and merges. See the README for the workflow.
 - Normal verification commands do not require further commits. Image builds require a resolvable Git `HEAD`.
@@ -35,8 +47,12 @@ arrives as branches, so each step can be reviewed before it is merged.
 
 ## Components And Metadata
 
-- Rename `components/example-backend` and `components/example-frontend` to the new component names. The agent works in its own clone, so renaming components needs no sandbox changes.
-- Update root task directories and both version scripts to the renamed component paths. Preserve the existing task names unless a deliberate interface change is required.
+- Replace `components/example-backend` and `components/example-frontend`
+  with the application's components, and remove the examples once they are
+  replaced. Prefer adding new components over renaming the examples: Git may
+  otherwise apply later template changes to the examples to the renamed
+  components.
+- Update root task directories and both version scripts to the new component paths. Preserve the existing task names unless a deliberate interface change is required.
 - For the supplied Java/Maven backend, change the Maven `groupId`, `artifactId`, Java package, resource paths, and affected backend tests. If replacing it, provide equivalent component tasks and version integration for the selected backend stack.
 - The supplied frontend can be replaced by another Node.js/npm stack. Update its package name, display text, telemetry service name, tests, component tasks, Containerfile, and development-server configuration for that stack.
 - For an npm frontend, run `npm install --package-lock-only` or `npm version --no-git-tag-version` as appropriate so `package-lock.json` has the same package name and version as `package.json`; use `npm ci` to install the lockfile afterwards.
