@@ -399,7 +399,10 @@ verify_agent_environment() {
         status=1
       check_agent_path_readonly /run/agent-github "GitHub token is read-only" ||
         status=1
-      check_agent_path_absent /upstream "host repository is not mounted" ||
+      # The upstream mount points to an empty directory in this mode.
+      # shellcheck disable=SC2016
+      check_agent "host repository is not exposed" \
+        sh -c '[ -z "$(ls -A "$1")" ]' _ "${agent_upstream}" ||
         status=1
       # shellcheck disable=SC2016
       check_agent "gh reads the token through its wrapper" \
@@ -411,6 +414,9 @@ verify_agent_environment() {
       check_agent_mountpoint "${agent_delivery}" "delivery repository is isolated" ||
         status=1
       check_agent_path_writable "${agent_delivery}" "delivery repository is writable" ||
+        status=1
+      # The token mount points to an empty directory in this mode.
+      check_agent_path_absent /run/agent-github/token "no GitHub token is present" ||
         status=1
     fi
   else
@@ -561,6 +567,11 @@ open_troubleshooting_shell() {
 }
 
 open_existing_agent_shell() {
+  if ! prepare_mount_sources; then
+    open_troubleshooting_shell \
+      "Failed to prepare mount sources"
+  fi
+
   if ! verify_agent_environment; then
     open_troubleshooting_shell \
       "Agent container is not running or does not match expected containment. Start it with ./agent.sh"
@@ -812,6 +823,27 @@ issue_github_token() {
   printf '%s' "${response}" | grep -o '"expires_at": *"[^"]*"'
 }
 
+prepare_mount_sources() {
+  if [[ -z "${XDG_RUNTIME_DIR:-}" ]]; then
+    echo "agent.sh requires XDG_RUNTIME_DIR" >&2
+    return 1
+  fi
+
+  local empty_dir="${XDG_RUNTIME_DIR}/agent-empty/${repo_name}"
+  (
+    umask 077
+    mkdir -p "${empty_dir}" "${github_token_dir}"
+  )
+
+  if [[ "${agent_forge}" == "github" ]]; then
+    export AGENT_UPSTREAM_SOURCE="${empty_dir}"
+    export AGENT_TOKEN_SOURCE="${github_token_dir}"
+  else
+    export AGENT_UPSTREAM_SOURCE="${repo_root}/.git"
+    export AGENT_TOKEN_SOURCE="${empty_dir}"
+  fi
+}
+
 enter_devcontainer() {
   local -a up_arguments=(
     --workspace-folder "${repo_root}"
@@ -827,6 +859,11 @@ enter_devcontainer() {
   fi
 
   ensure_mount_points
+
+  if ! prepare_mount_sources; then
+    open_troubleshooting_shell \
+      "Failed to prepare mount sources"
+  fi
 
   if [[ "${agent_forge}" == "github" ]] &&
     ! issue_github_token >/dev/null; then

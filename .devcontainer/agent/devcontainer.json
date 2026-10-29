@@ -8,10 +8,13 @@
   "workspaceMount": "source=${localWorkspaceFolderBasename}-agent-workspaces,target=/agent-workspaces/${localWorkspaceFolderBasename},type=volume,U",
   "workspaceFolder": "/agent-workspaces/${localWorkspaceFolderBasename}",
   "mounts": [
-    // Read-only source for the agent's clone. See ADR-0011.
-    "source=${localWorkspaceFolder}/.git,target=/upstream/${localWorkspaceFolderBasename}.git,type=bind,readonly,relabel=shared",
-    // Delivery target for agent branches. See ADR-0011.
+    // Read-only source for the agent's clone, or an empty directory when the
+    // agent works against GitHub. Set by agent.sh. See ADR-0011 and ADR-0013.
+    "source=${localEnv:AGENT_UPSTREAM_SOURCE},target=/upstream/${localWorkspaceFolderBasename}.git,type=bind,readonly,relabel=shared",
+    // Delivery target for agent branches. Unused when the agent works against GitHub.
     "source=${localWorkspaceFolderBasename}-agent-delivery,target=/agent-delivery/${localWorkspaceFolderBasename}.git,type=volume,U",
+    // Installation token issued on the host, or an empty directory. Set by agent.sh.
+    "source=${localEnv:AGENT_TOKEN_SOURCE},target=/run/agent-github,type=bind,readonly",
     // Agent-only state
     "target=/agent-workspaces/${localWorkspaceFolderBasename}/.opencode,type=tmpfs,notmpcopyup,tmpfs-mode=1777",
     "target=/agent-workspaces/${localWorkspaceFolderBasename}/.claude,type=tmpfs,notmpcopyup,tmpfs-mode=1777",

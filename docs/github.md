@@ -34,12 +34,10 @@ repository. See ADR-0013 in `hojt/homelab` for the decision.
   `./agent.sh fetch`, and merge or discard them.
 - In `.devcontainer/agent/sandbox.conf`, set `agent_forge=github` and
   `agent_forge_repository=<owner>/<name>`.
-- In `.devcontainer/agent/devcontainer.json`, replace the read-only mount of
-  `.git` and the delivery volume with the read-only mount of the token
-  directory, `${localEnv:XDG_RUNTIME_DIR}/agent-github/${localWorkspaceFolderBasename}`
-  on `/run/agent-github`.
 - Add `github.com` and `api.github.com` to `.devcontainer/agent/proxy/allowlist`.
-- Run `./agent.sh rebuild` and check that every check passes.
+- Run `./agent.sh rebuild` and check that every check passes. Mounts are
+  chosen when the agent container is created, so switching `agent_forge`
+  requires recreating it.
 
 ## Verify the rules
 
