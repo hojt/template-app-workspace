@@ -31,6 +31,7 @@ arrives as branches, so each step can be reviewed before it is merged.
 - Container, volume, network, and proxy names derive from the workspace directory name, so renaming the directory renames them. Give any new volume a name based on `${localWorkspaceFolderBasename}` in the same way.
 - Update workspace-facing messages and documentation. `agent.sh` is shared across workspaces and needs no changes; its workspace-specific layout lives in `.devcontainer/agent/sandbox.conf`.
 - Select a host frontend port with `FRONTEND_HOST_PORT=<port> ./dev.sh rebuild`. Keep Vite's internal port 5173 and its `0.0.0.0` binding. Keep the agent devcontainer free of published ports.
+- Describe the application and its components in `AGENTS.md`. Do not change `.devcontainer/agent/instructions.md`; it is owned by the template.
 
 ## Components And Metadata
 
