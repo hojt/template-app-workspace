@@ -1,0 +1,12 @@
+version: '3'
+
+tasks:
+  update:
+    desc: Merge a template version into this workspace (task template:update -- <version>)
+    cmds:
+      - .template/update.sh {{.CLI_ARGS}}
+
+  status:
+    desc: Show the template versions merged into this workspace
+    cmds:
+      - "git log --merges --date=short --format='%h %ad %s' --grep='^chore(template): update to'"
