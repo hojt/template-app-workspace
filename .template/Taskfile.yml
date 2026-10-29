@@ -7,6 +7,6 @@ tasks:
       - .template/update.sh {{.CLI_ARGS}}
 
   status:
-    desc: Show the template versions merged into this workspace
+    desc: Show the template versions this workspace started from and merged
     cmds:
-      - "git log --merges --date=short --format='%h %ad %s' --grep='^chore(template): update to'"
+      - "git log -E --date=short --format='%h %ad %s' --grep='^chore\\(template\\): (start from|update to) '"
