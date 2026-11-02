@@ -30,7 +30,8 @@
     "--security-opt=no-new-privileges",
     "--memory=16g",
     "--cpus=8",
-    "--pids-limit=2048"
+    "--pids-limit=2048",
+    "--shm-size=1g"
   ],
   "remoteUser": "developer",
   "containerUser": "developer",

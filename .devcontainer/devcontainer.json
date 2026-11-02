@@ -22,7 +22,8 @@
   "runArgs": [
     "--security-opt=label=disable",
     "--publish=127.0.0.1:${localEnv:FRONTEND_HOST_PORT:5173}:5173",
-    "--publish=127.0.0.1:${localEnv:PLAYWRIGHT_HOST_PORT:9323}:9323"
+    "--publish=127.0.0.1:${localEnv:PLAYWRIGHT_HOST_PORT:9323}:9323",
+    "--shm-size=1g"
   ],
   "remoteUser": "developer",
   "containerUser": "developer",
