@@ -85,7 +85,33 @@ ARG USERNAME
 
 USER root
 
-RUN dnf install -y gh \
+# Playwright Chromium runtime libraries
+RUN dnf install -y \
+        alsa-lib \
+        at-spi2-atk \
+        cairo \
+        cups-libs \
+        dbus-libs \
+        fontconfig \
+        freetype \
+        gdk-pixbuf2 \
+        gh \
+        glib2 \
+        gtk3 \
+        libX11 \
+        libXcomposite \
+        libXdamage \
+        libXext \
+        libXfixes \
+        libXrandr \
+        libdrm \
+        libxcb \
+        libxkbcommon \
+        libxshmfence \
+        mesa-libgbm \
+        nspr \
+        nss \
+        pango \
     && dnf clean all
 
 COPY .devcontainer/agent/gh-wrapper.sh /usr/local/bin/gh

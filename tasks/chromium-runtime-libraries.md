@@ -1,6 +1,6 @@
 # Chromium runtime libraries for Playwright
 
-Status: open
+Status: done
 
 ## Background
 
@@ -58,3 +58,59 @@ and report the sandbox settings that affect running Chromium.
 
 The developer rebuilds the agent image, confirms that `ldd` reports no missing
 libraries, and validates with a minimal Playwright test in `example-app`.
+
+## Findings
+
+Playwright 1.64.1 was installed in `/tmp/pw` on 2026-11-02. Its Chromium
+revision is 1248 (Chrome for Testing 156.0.8078.4). `npx playwright install
+chromium`, without `--with-deps`, tried five times to download:
+
+```text
+https://cdn.playwright.dev/builds/cft/156.0.8078.4/linux64/chrome-linux64.zip
+```
+
+Each request was rejected by the agent proxy with HTTP 403 (`Filtered`), so
+neither the Chromium nor the Chromium headless shell binary was downloaded and
+`ldd` could not be run. The added packages are therefore unverified mappings
+from Chromium's standard Linux runtime libraries; rebuilding the image and
+running `ldd` is required before treating them as confirmed.
+
+| Runtime library | Fedora package |
+| --- | --- |
+| `libasound.so.2` | `alsa-lib` |
+| `libatk-1.0.so.0`, `libatk-bridge-2.0.so.0`, `libatspi.so.0` | `at-spi2-atk` |
+| `libcairo.so.2` | `cairo` |
+| `libcups.so.2` | `cups-libs` |
+| `libdbus-1.so.3` | `dbus-libs` |
+| `libfontconfig.so.1` | `fontconfig` |
+| `libfreetype.so.6` | `freetype` |
+| `libgdk_pixbuf-2.0.so.0` | `gdk-pixbuf2` |
+| `libglib-2.0.so.0` | `glib2` |
+| `libgtk-3.so.0` | `gtk3` |
+| `libX11.so.6` | `libX11` |
+| `libXcomposite.so.1` | `libXcomposite` |
+| `libXdamage.so.1` | `libXdamage` |
+| `libXext.so.6` | `libXext` |
+| `libXfixes.so.3` | `libXfixes` |
+| `libXrandr.so.2` | `libXrandr` |
+| `libdrm.so.2` | `libdrm` |
+| `libxcb.so.1` | `libxcb` |
+| `libxkbcommon.so.0` | `libxkbcommon` |
+| `libxshmfence.so.1` | `libxshmfence` |
+| `libgbm.so.1` | `mesa-libgbm` |
+| `libnspr4.so` | `nspr` |
+| `libnss3.so` | `nss` |
+| `libpango-1.0.so.0` | `pango` |
+
+`~/.cache` is in the container's writable overlay filesystem, not a named
+volume, tmpfs, or image layer. It is agent-only because the agent container is
+isolated from the developer environment. `/dev/shm` is 63 MiB,
+`/sys/fs/cgroup/pids.max` is 2048, and the memory limit is 16 GiB
+(`17179869184` bytes).
+
+`HTTP_PROXY` and `HTTPS_PROXY` are both
+`http://template-app-workspace-agent-proxy:8888`; `NO_PROXY` is
+`localhost,127.0.0.1`. Both `localhost` and `127.0.0.1` bypass the proxy.
+The only browser-download host contacted was `cdn.playwright.dev`, and the
+proxy rejected it. Permit that host through the agent proxy allowlist to enable
+the required download and `ldd` verification; no sandbox setting was changed.
