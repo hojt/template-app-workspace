@@ -63,17 +63,31 @@ libraries, and validates with a minimal Playwright test in `example-app`.
 
 Playwright 1.64.1 was installed in `/tmp/pw` on 2026-11-02. Its Chromium
 revision is 1248 (Chrome for Testing 156.0.8078.4). `npx playwright install
-chromium`, without `--with-deps`, tried five times to download:
+chromium`, without `--with-deps`, downloaded the Chromium binary, FFmpeg, and
+the Chromium headless shell from:
 
 ```text
 https://cdn.playwright.dev/builds/cft/156.0.8078.4/linux64/chrome-linux64.zip
 ```
 
-Each request was rejected by the agent proxy with HTTP 403 (`Filtered`), so
-neither the Chromium nor the Chromium headless shell binary was downloaded and
-`ldd` could not be run. The added packages are therefore unverified mappings
-from Chromium's standard Linux runtime libraries; rebuilding the image and
-running `ldd` is required before treating them as confirmed.
+`ldd` completed for both
+`chromium-1248/chrome-linux64/chrome` and
+`chromium_headless_shell-1248/chrome-headless-shell-linux64/chrome-headless-shell`
+with no `not found` entries. Its relevant non-system library entries were:
+
+```text
+libasound.so.2        libatk-1.0.so.0         libatk-bridge-2.0.so.0
+libatspi.so.0         libcairo.so.2           libcups.so.2
+libdbus-1.so.3        libfontconfig.so.1      libfreetype.so.6
+libdrm.so.2           libgbm.so.1             libglib-2.0.so.0
+libnspr4.so           libnss3.so              libpango-1.0.so.0
+libX11.so.6
+libXcomposite.so.1    libXdamage.so.1         libXext.so.6
+libXfixes.so.3        libXrandr.so.2          libxcb.so.1
+libxkbcommon.so.0
+```
+
+The package list below maps these libraries to Fedora packages.
 
 | Runtime library | Fedora package |
 | --- | --- |
@@ -84,9 +98,7 @@ running `ldd` is required before treating them as confirmed.
 | `libdbus-1.so.3` | `dbus-libs` |
 | `libfontconfig.so.1` | `fontconfig` |
 | `libfreetype.so.6` | `freetype` |
-| `libgdk_pixbuf-2.0.so.0` | `gdk-pixbuf2` |
 | `libglib-2.0.so.0` | `glib2` |
-| `libgtk-3.so.0` | `gtk3` |
 | `libX11.so.6` | `libX11` |
 | `libXcomposite.so.1` | `libXcomposite` |
 | `libXdamage.so.1` | `libXdamage` |
@@ -96,7 +108,6 @@ running `ldd` is required before treating them as confirmed.
 | `libdrm.so.2` | `libdrm` |
 | `libxcb.so.1` | `libxcb` |
 | `libxkbcommon.so.0` | `libxkbcommon` |
-| `libxshmfence.so.1` | `libxshmfence` |
 | `libgbm.so.1` | `mesa-libgbm` |
 | `libnspr4.so` | `nspr` |
 | `libnss3.so` | `nss` |
@@ -111,6 +122,6 @@ isolated from the developer environment. `/dev/shm` is 63 MiB,
 `HTTP_PROXY` and `HTTPS_PROXY` are both
 `http://template-app-workspace-agent-proxy:8888`; `NO_PROXY` is
 `localhost,127.0.0.1`. Both `localhost` and `127.0.0.1` bypass the proxy.
-The only browser-download host contacted was `cdn.playwright.dev`, and the
-proxy rejected it. Permit that host through the agent proxy allowlist to enable
-the required download and `ldd` verification; no sandbox setting was changed.
+The browser download contacted `cdn.playwright.dev`, including its
+`/builds/cft/` and `/dbazure/download/` paths. The proxy allowed all downloads;
+no sandbox setting was changed.
