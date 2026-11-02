@@ -54,6 +54,31 @@ RUN dnf install -y \
         unzip \
     && dnf clean all
 
+# Playwright Chromium runtime libraries
+RUN dnf install -y \
+        alsa-lib \
+        at-spi2-atk \
+        cairo \
+        cups-libs \
+        dbus-libs \
+        fontconfig \
+        freetype \
+        glib2 \
+        libX11 \
+        libXcomposite \
+        libXdamage \
+        libXext \
+        libXfixes \
+        libXrandr \
+        libdrm \
+        libxcb \
+        libxkbcommon \
+        mesa-libgbm \
+        nspr \
+        nss \
+        pango \
+    && dnf clean all
+
 RUN ln --symbolic /usr/bin/node-24 /usr/local/bin/node \
     && ln --symbolic /usr/bin/npm-24 /usr/local/bin/npm \
     && ln --symbolic /usr/bin/npx-24 /usr/local/bin/npx \
@@ -85,30 +110,8 @@ ARG USERNAME
 
 USER root
 
-# Playwright Chromium runtime libraries
 RUN dnf install -y \
-        alsa-lib \
-        at-spi2-atk \
-        cairo \
-        cups-libs \
-        dbus-libs \
-        fontconfig \
-        freetype \
         gh \
-        glib2 \
-        libX11 \
-        libXcomposite \
-        libXdamage \
-        libXext \
-        libXfixes \
-        libXrandr \
-        libdrm \
-        libxcb \
-        libxkbcommon \
-        mesa-libgbm \
-        nspr \
-        nss \
-        pango \
     && dnf clean all
 
 COPY .devcontainer/agent/gh-wrapper.sh /usr/local/bin/gh
